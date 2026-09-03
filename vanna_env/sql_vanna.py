@@ -30,13 +30,15 @@ CHROMA_PATH = os.path.abspath(CHROMA_PATH)
 print(f"Using Chroma path: {CHROMA_PATH}")
 
 vn = SqlVanna(config={'path': CHROMA_PATH})
-
+sql_password=os.getenv("MYSQL_PASSWORD")
+if sql_password is None:
+    raise EnvironmentError("MYSQL_PASSWORD environment variable is not set.")
 try:
     vn.connect_to_mysql(
         host='127.0.0.1',
         user='root',
         dbname='your_database',
-        password='Pra3@gmail',
+        password=sql_password,
         port=3306
     )
     print("Database connection is successful...!!")
