@@ -11,21 +11,38 @@ MYPASSWORD=os.getenv("SQL_PASSWORD")
 configure(api_key=GEMINI_KEY)
 model=GenerativeModel(model_name="gemini-3.6-flash")
 
+
+
+"""to find all the databases"""
 if MYPASSWORD is None:
     raise EnvironmentError("Mysql password is not set in environment variables..!!")
 else:
     connect=mysql.connector.connect(
+    host="127.0.0.1",
+    user="root",
+    password=MYPASSWORD,
+    port=3306
+)
+all_databases=[]
+cursor=connect.cursor()
+cursor.execute("SHOW DATABASES")
+
+for db in cursor.fetchall():
+    all_databases.append(db)
+
+print("Select a Database for the given list of all the Databases!!\n",all_databases)
+db=input(str("Enter the database name from the above list:"))
+
+def get_database_schema(db):
+    """Which returns the description of all the tables and columns in the DB"""
+    
+    connect=mysql.connector.connect(
         host="127.0.0.1",
         user="root",
         password=MYPASSWORD,
-        database="your_database",
+        database=db,
         port=3306
     )
-
-cursor=connect.cursor()
-
-def get_database_schema():
-    """Which returns the description of all the tables and columns in the DB"""
     cursor=connect.cursor()
     cursor.execute("SHOW TABLES")
     tables=[next(iter(row.values())) if isinstance(row, dict) else row[0] for row in cursor.fetchall()]
@@ -40,7 +57,7 @@ def get_database_schema():
         )
         schema_text+=f"Table `{table}`: {col_desc}\n"
 
-    return schema_text
+    return [schema_text,connect]
 
 def question_to_llm_for_sql(question,schema):
     """Which takes a natural language question and returns the SQL query using Gemini API"""
@@ -61,8 +78,9 @@ def execute_sql_query(conn,sql_query):
     rows=cursor.fetchall()
     return cols,rows
 
-def connect_answer_and_question(question):
-    schema=get_database_schema()
+def connect_answer_and_question(question,db):
+    
+    schema,connect=get_database_schema(db)
     sql_query=question_to_llm_for_sql(question,schema)
 
     print(f"Generated Query is:\n{sql_query}\n")
@@ -72,6 +90,6 @@ def connect_answer_and_question(question):
 
 question=input(str("Enter your question in simple english:"))
 
-cols,rows=connect_answer_and_question(question)
+cols,rows=connect_answer_and_question(question,all_databases)
 print(cols,rows)
 
